@@ -1,24 +1,71 @@
 /* ==========================================================================
-   POSTEVIDENCE APP JAVASCRIPT LOGIC
+   POSTEVIDENCE APP - FIREBASE CLOUD INTEGRATION
    ========================================================================== */
 
-// Global State Variables
+// 1. FIREBASE CONFIGURATION (YOUR PROJECT CONFIG)
+const firebaseConfig = {
+  apiKey: "AIzaSyD2hJl3gQlJohierXco1mrJ4YYwC4ph7c0",
+  authDomain: "post-evidence-app.firebaseapp.com",
+  projectId: "post-evidence-app",
+  storageBucket: "post-evidence-app.firebasestorage.app",
+  messagingSenderId: "532196385091",
+  appId: "1:532196385091:web:2017816b1bb2f1d2544ff6",
+  measurementId: "G-LNXKDJ7QN0"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// Global States
 let currentPhotoBase64 = null;
 let scannedParcels = [];
 let signaturePad = null;
 let html5QrCode = null;
 let currentGpsCoords = "-";
-let dbRecords = JSON.parse(localStorage.getItem('post_evidence_db')) || [];
+let dbRecords = [];
 
 // Initialize on DOM Loaded
 document.addEventListener('DOMContentLoaded', () => {
   initClock();
   initSignaturePad();
-  updateHistoryCount();
-  renderHistoryList();
+  checkCloudConnection();
+  listenToCloudUpdates();
+
+  // Resize canvas on orientation change
+  window.addEventListener('resize', resizeCanvas);
 });
 
-// 1. Clock & GPS Logic
+// Cloud Status Check
+function checkCloudConnection() {
+  const badge = document.getElementById('db-status-badge');
+  db.collection('evidence_records').limit(1).get()
+    .then(() => {
+      badge.innerHTML = `<i class="fa-solid fa-cloud-check text-success"></i> เชื่อมต่อ Cloud สำเร็จ`;
+    })
+    .catch((err) => {
+      badge.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-danger"></i> Offline Mode`;
+      console.error("Firebase Error:", err);
+    });
+}
+
+// Realtime Listeners from Firestore Cloud
+function listenToCloudUpdates() {
+  db.collection('evidence_records')
+    .orderBy('createdAt', 'desc')
+    .onSnapshot((snapshot) => {
+      dbRecords = [];
+      snapshot.forEach(doc => {
+        dbRecords.push({ docId: doc.id, ...doc.data() });
+      });
+      updateHistoryCount();
+      renderHistoryList();
+    }, (error) => {
+      console.error("Cloud fetch error:", error);
+    });
+}
+
+// Clock & GPS Logic
 function initClock() {
   const updateTime = () => {
     const now = new Date();
@@ -50,7 +97,6 @@ function getGpsLocation() {
         gpsText.innerHTML = `<i class="fa-solid fa-circle-check text-success"></i> ${currentGpsCoords}`;
       },
       (error) => {
-        // Fallback simulated GPS location
         currentGpsCoords = "13.756331, 100.501832 (จำลองหน้างาน)";
         gpsText.innerHTML = `<i class="fa-solid fa-location-crosshairs"></i> ${currentGpsCoords}`;
       },
@@ -62,7 +108,7 @@ function getGpsLocation() {
   }
 }
 
-// 2. Camera Photo Capture Logic
+// Camera Photo Capture Logic
 function triggerCameraInput() {
   document.getElementById('camera-input').click();
 }
@@ -72,16 +118,41 @@ function handleImageUpload(event) {
   if (file) {
     const reader = new FileReader();
     reader.onload = function(e) {
-      currentPhotoBase64 = e.target.result;
-      document.getElementById('photo-preview').src = currentPhotoBase64;
-      document.getElementById('photo-placeholder').classList.add('hidden');
-      document.getElementById('photo-preview-container').classList.remove('hidden');
+      // Compress Image to fit Firestore Base64 limits
+      compressImage(e.target.result, 800, 0.7, (compressedBase64) => {
+        currentPhotoBase64 = compressedBase64;
+        document.getElementById('photo-preview').src = currentPhotoBase64;
+        document.getElementById('photo-placeholder').classList.add('hidden');
+        document.getElementById('photo-preview-container').classList.remove('hidden');
+      });
     };
     reader.readAsDataURL(file);
   }
 }
 
-// 3. Multi-Barcode Scanning Logic
+// Image Compression Helper
+function compressImage(base64, maxWidth, quality, callback) {
+  const img = new Image();
+  img.src = base64;
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    let width = img.width;
+    let height = img.height;
+
+    if (width > maxWidth) {
+      height = Math.round((height * maxWidth) / width);
+      width = maxWidth;
+    }
+
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, width, height);
+    callback(canvas.toDataURL('image/jpeg', quality));
+  };
+}
+
+// Multi-Barcode Scanner
 function toggleCameraScanner() {
   const viewport = document.getElementById('qr-reader-container');
   viewport.classList.remove('hidden');
@@ -94,15 +165,12 @@ function toggleCameraScanner() {
     { facingMode: "environment" },
     { fps: 10, qrbox: { width: 250, height: 150 } },
     (decodedText) => {
-      // Audio beep feedback
       playBeepSound();
       addParcelToList(decodedText);
     },
-    (errorMessage) => {
-      // Ignore scan errors while searching
-    }
+    (err) => {}
   ).catch(err => {
-    alert("ไม่สามารถเปิดกล้องได้ หรือกล้องถูกปฏิเสธสิทธิ์");
+    alert("ไม่สามารถเปิดกล้องสแกนได้");
   });
 }
 
@@ -126,9 +194,7 @@ function addTrackingFromInput() {
 }
 
 function addParcelToList(trackingNo) {
-  if (scannedParcels.includes(trackingNo)) {
-    return; // Prevent duplication
-  }
+  if (scannedParcels.includes(trackingNo)) return;
   scannedParcels.push(trackingNo);
   renderParcelList();
 }
@@ -151,7 +217,7 @@ function renderParcelList() {
   listEl.innerHTML = scannedParcels.map((code, index) => `
     <div class="parcel-item">
       <span><i class="fa-solid fa-box-archive"></i> ${index + 1}. ${code}</span>
-      <button class="btn-text text-danger" onclick="removeParcel(${index})">
+      <button type="button" class="btn-text text-danger" onclick="removeParcel(${index})">
         <i class="fa-solid fa-xmark"></i>
       </button>
     </div>
@@ -168,21 +234,35 @@ function playBeepSound() {
   osc.stop(ctx.currentTime + 0.1);
 }
 
-// 4. Digital Signature Pad
+// Improved Signature Pad Setup
 function initSignaturePad() {
   const canvas = document.getElementById('signature-pad');
   signaturePad = new SignaturePad(canvas, {
-    penColor: 'rgb(0, 51, 102)'
+    penColor: 'rgb(0, 51, 102)',
+    minWidth: 1.5,
+    maxWidth: 3.5,
+    throttle: 16
   });
+  resizeCanvas();
+}
+
+function resizeCanvas() {
+  const canvas = document.getElementById('signature-pad');
+  const container = document.getElementById('canvas-container');
+  if (!container || !canvas) return;
+
+  const ratio = Math.max(window.devicePixelRatio || 1, 1);
+  canvas.width = container.clientWidth * ratio;
+  canvas.height = container.clientHeight * ratio;
+  canvas.getContext("2d").scale(ratio, ratio);
+  if (signaturePad) signaturePad.clear();
 }
 
 function clearSignature() {
-  if (signaturePad) {
-    signaturePad.clear();
-  }
+  if (signaturePad) signaturePad.clear();
 }
 
-// 5. Save Evidence Record
+// Save Record to Firebase Cloud Firestore
 function saveEvidenceRecord() {
   const senderName = document.getElementById('sender-name').value.trim();
   const senderPhone = document.getElementById('sender-phone').value.trim();
@@ -198,9 +278,16 @@ function saveEvidenceRecord() {
     return;
   }
 
-  const record = {
-    id: 'EV-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.floor(1000 + Math.random() * 9000),
+  const saveBtn = document.getElementById('btn-save');
+  saveBtn.disabled = true;
+  saveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึกลง Cloud...`;
+
+  const recordId = 'EV-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.floor(1000 + Math.random() * 9000);
+
+  const recordData = {
+    id: recordId,
     timestamp: document.getElementById('display-datetime').innerText,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     gps: currentGpsCoords,
     location: locationName,
     senderName: senderName || 'ผู้ฝากส่งทั่วไป',
@@ -210,18 +297,19 @@ function saveEvidenceRecord() {
     signature: signaturePad.toDataURL()
   };
 
-  dbRecords.unshift(record);
-  localStorage.setItem('post_evidence_db', JSON.stringify(dbRecords));
-
-  alert(`บันทึกหลักฐานเรียบร้อยแล้ว!\nเลขที่เอกสาร: ${record.id}\nจำนวนพัสดุ: ${record.parcels.length} ชิ้น`);
-
-  // Reset Form
-  resetForm();
-  updateHistoryCount();
-  renderHistoryList();
-  
-  // Auto open Modal
-  openEvidenceModal(record.id);
+  db.collection('evidence_records').add(recordData)
+    .then(() => {
+      alert(`บันทึกหลักฐานขึ้นระบบ Cloud เรียบร้อยแล้ว!\nเลขที่เอกสาร: ${recordId}`);
+      resetForm();
+      openEvidenceModalData(recordData);
+    })
+    .catch((error) => {
+      alert("เกิดข้อผิดพลาดในการบันทึก: " + error.message);
+    })
+    .finally(() => {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> บันทึกหลักฐานเข้าระบบ Cloud`;
+    });
 }
 
 function resetForm() {
@@ -248,24 +336,27 @@ function createPlaceholderPhoto() {
   return canvas.toDataURL();
 }
 
-// 6. Navigation Tabs
+// Navigation & History Rendering
 function switchTab(tabName) {
   document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
 
   document.getElementById(`tab-btn-${tabName}`).classList.add('active');
   document.getElementById(`tab-${tabName}`).classList.add('active');
+  
+  if (tabName === 'form') {
+    setTimeout(resizeCanvas, 100);
+  }
 }
 
 function updateHistoryCount() {
   document.getElementById('history-count').innerText = dbRecords.length;
 }
 
-// 7. Render History List
 function renderHistoryList() {
   const container = document.getElementById('history-list-container');
   if (dbRecords.length === 0) {
-    container.innerHTML = `<div class="empty-state">ยังไม่มีประวัติการรับพัสดุในระบบ</div>`;
+    container.innerHTML = `<div class="empty-state">ยังไม่มีประวัติการรับพัสดุในระบบ Cloud</div>`;
     return;
   }
 
@@ -278,7 +369,7 @@ function renderHistoryList() {
           <i class="fa-solid fa-boxes-packing"></i> พัสดุ ${item.parcels.length} ชิ้น: ${item.parcels.slice(0, 2).join(', ')}${item.parcels.length > 2 ? '...' : ''}
         </div>
       </div>
-      <button class="btn btn-outline btn-sm" onclick="openEvidenceModal('${item.id}')">
+      <button type="button" class="btn btn-outline btn-sm" onclick="openEvidenceModal('${item.id}')">
         <i class="fa-solid fa-file-pdf"></i> เอกสาร A4
       </button>
     </div>
@@ -287,18 +378,18 @@ function renderHistoryList() {
 
 function filterHistory() {
   const query = document.getElementById('history-search').value.toLowerCase();
-  const cards = document.querySelectorAll('.history-card');
-  cards.forEach(card => {
-    const text = card.innerText.toLowerCase();
-    card.style.display = text.includes(query) ? 'flex' : 'none';
+  document.querySelectorAll('.history-card').forEach(card => {
+    card.style.display = card.innerText.toLowerCase().includes(query) ? 'flex' : 'none';
   });
 }
 
-// 8. Modal & A4 Document Rendering
+// Modal & A4 PDF Document Logic
 function openEvidenceModal(recordId) {
   const record = dbRecords.find(r => r.id === recordId);
-  if (!record) return;
+  if (record) openEvidenceModalData(record);
+}
 
+function openEvidenceModalData(record) {
   document.getElementById('a4-doc-id').innerText = record.id;
   document.getElementById('a4-doc-date').innerText = record.timestamp;
   document.getElementById('a4-location').innerText = record.location;
@@ -307,7 +398,6 @@ function openEvidenceModal(recordId) {
   document.getElementById('a4-sender-phone').innerText = record.senderPhone;
   document.getElementById('a4-total-qty').innerText = record.parcels.length;
 
-  // Parcel Table Rows
   const tbody = document.getElementById('a4-parcel-tbody');
   tbody.innerHTML = record.parcels.map((code, idx) => `
     <tr>
