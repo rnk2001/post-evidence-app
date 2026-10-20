@@ -136,13 +136,14 @@ body {
   color: var(--text-color);
 }
 
-input[type="text"], input[type="tel"] {
+input[type="text"], input[type="tel"], textarea {
   width: 100%;
   padding: 10px 14px;
   border: 1px solid var(--border-color);
   border-radius: 6px;
   font-size: 14px;
   outline: none;
+  font-family: 'Prompt', sans-serif;
 }
 
 .readonly-box {
@@ -208,8 +209,9 @@ input[type="text"], input[type="tel"] {
   cursor: pointer;
 }
 
-.scanner-actions { display: flex; flex-direction: column; gap: 12px; margin-bottom: 15px; }
+.scanner-actions { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
 .manual-input-box { display: flex; gap: 8px; }
+.bulk-input-box textarea { resize: vertical; }
 
 .scanner-viewport {
   background: #000;
@@ -230,7 +232,7 @@ input[type="text"], input[type="tel"] {
 .parcel-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #f8f9fa; margin-bottom: 6px; border-radius: 6px; font-family: monospace; font-size: 15px; font-weight: 600; }
 .empty-state { text-align: center; color: var(--text-muted); font-size: 13px; padding: 20px 0; }
 
-/* Canvas Signature Styles - Improved for Touch */
+/* Canvas Signature Styles */
 .canvas-wrapper {
   border: 2px dashed #bbb;
   border-radius: 8px;
@@ -239,7 +241,7 @@ input[type="text"], input[type="tel"] {
   position: relative;
   width: 100%;
   height: 180px;
-  touch-action: none; /* Prevents screen scrolling while signing */
+  touch-action: none;
 }
 
 canvas#signature-pad {

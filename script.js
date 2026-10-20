@@ -1,8 +1,7 @@
 /* ==========================================================================
-   POSTEVIDENCE APP - FIREBASE CLOUD INTEGRATION
+   POSTEVIDENCE APP - FIREBASE CLOUD INTEGRATION (ENHANCED)
    ========================================================================== */
 
-// 1. FIREBASE CONFIGURATION (YOUR PROJECT CONFIG)
 const firebaseConfig = {
   apiKey: "AIzaSyD2hJl3gQlJohierXco1mrJ4YYwC4ph7c0",
   authDomain: "post-evidence-app.firebaseapp.com",
@@ -13,11 +12,9 @@ const firebaseConfig = {
   measurementId: "G-LNXKDJ7QN0"
 };
 
-// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// Global States
 let currentPhotoBase64 = null;
 let scannedParcels = [];
 let signaturePad = null;
@@ -25,18 +22,16 @@ let html5QrCode = null;
 let currentGpsCoords = "-";
 let dbRecords = [];
 
-// Initialize on DOM Loaded
 document.addEventListener('DOMContentLoaded', () => {
   initClock();
   initSignaturePad();
+  getGpsLocation(); // ดึง GPS อัตโนมัติทันทีที่เปิดเว็บ
   checkCloudConnection();
   listenToCloudUpdates();
 
-  // Resize canvas on orientation change
   window.addEventListener('resize', resizeCanvas);
 });
 
-// Cloud Status Check
 function checkCloudConnection() {
   const badge = document.getElementById('db-status-badge');
   db.collection('evidence_records').limit(1).get()
@@ -49,7 +44,6 @@ function checkCloudConnection() {
     });
 }
 
-// Realtime Listeners from Firestore Cloud
 function listenToCloudUpdates() {
   db.collection('evidence_records')
     .orderBy('createdAt', 'desc')
@@ -65,7 +59,6 @@ function listenToCloudUpdates() {
     });
 }
 
-// Clock & GPS Logic
 function initClock() {
   const updateTime = () => {
     const now = new Date();
@@ -86,7 +79,7 @@ function initClock() {
 
 function getGpsLocation() {
   const gpsText = document.getElementById('gps-text');
-  gpsText.innerText = "กำลังค้นหาสัญญาณ GPS...";
+  gpsText.innerText = "กำลังค้นหาสัญญาณ GPS หน้างาน...";
   
   if ("geolocation" in navigator) {
     navigator.geolocation.getCurrentPosition(
@@ -100,7 +93,7 @@ function getGpsLocation() {
         currentGpsCoords = "13.756331, 100.501832 (จำลองหน้างาน)";
         gpsText.innerHTML = `<i class="fa-solid fa-location-crosshairs"></i> ${currentGpsCoords}`;
       },
-      { timeout: 8000 }
+      { timeout: 8000, enableHighAccuracy: true }
     );
   } else {
     currentGpsCoords = "13.756331, 100.501832 (จำลอง)";
@@ -108,7 +101,6 @@ function getGpsLocation() {
   }
 }
 
-// Camera Photo Capture Logic
 function triggerCameraInput() {
   document.getElementById('camera-input').click();
 }
@@ -118,7 +110,6 @@ function handleImageUpload(event) {
   if (file) {
     const reader = new FileReader();
     reader.onload = function(e) {
-      // Compress Image to fit Firestore Base64 limits
       compressImage(e.target.result, 800, 0.7, (compressedBase64) => {
         currentPhotoBase64 = compressedBase64;
         document.getElementById('photo-preview').src = currentPhotoBase64;
@@ -130,7 +121,6 @@ function handleImageUpload(event) {
   }
 }
 
-// Image Compression Helper
 function compressImage(base64, maxWidth, quality, callback) {
   const img = new Image();
   img.src = base64;
@@ -152,7 +142,6 @@ function compressImage(base64, maxWidth, quality, callback) {
   };
 }
 
-// Multi-Barcode Scanner
 function toggleCameraScanner() {
   const viewport = document.getElementById('qr-reader-container');
   viewport.classList.remove('hidden');
@@ -193,6 +182,29 @@ function addTrackingFromInput() {
   }
 }
 
+// ฟังก์ชันเพิ่ม Tracking หลายบรรทัดพร้อมกันจาก Textarea
+function addBulkTrackingFromTextarea() {
+  const textarea = document.getElementById('bulk-tracking-textarea');
+  const lines = textarea.value.split('\n');
+  let addedCount = 0;
+
+  lines.forEach(line => {
+    const code = line.trim().toUpperCase();
+    if (code && !scannedParcels.includes(code)) {
+      scannedParcels.push(code);
+      addedCount++;
+    }
+  });
+
+  if (addedCount > 0) {
+    renderParcelList();
+    textarea.value = '';
+    alert(`เพิ่มพัสดุสำเร็จ ${addedCount} รายการ`);
+  } else {
+    alert('ไม่พบข้อมูลเลขพัสดุใหม่ที่ถูกต้องในช่องข้อความ');
+  }
+}
+
 function addParcelToList(trackingNo) {
   if (scannedParcels.includes(trackingNo)) return;
   scannedParcels.push(trackingNo);
@@ -202,6 +214,14 @@ function addParcelToList(trackingNo) {
 function removeParcel(index) {
   scannedParcels.splice(index, 1);
   renderParcelList();
+}
+
+function clearAllParcels() {
+  if (scannedParcels.length === 0) return;
+  if (confirm('ต้องการล้างรายการพัสดุทั้งหมดใช่หรือไม่?')) {
+    scannedParcels = [];
+    renderParcelList();
+  }
 }
 
 function renderParcelList() {
@@ -234,7 +254,6 @@ function playBeepSound() {
   osc.stop(ctx.currentTime + 0.1);
 }
 
-// Improved Signature Pad Setup
 function initSignaturePad() {
   const canvas = document.getElementById('signature-pad');
   signaturePad = new SignaturePad(canvas, {
@@ -262,7 +281,6 @@ function clearSignature() {
   if (signaturePad) signaturePad.clear();
 }
 
-// Save Record to Firebase Cloud Firestore
 function saveEvidenceRecord() {
   const senderName = document.getElementById('sender-name').value.trim();
   const senderPhone = document.getElementById('sender-phone').value.trim();
@@ -322,6 +340,7 @@ function resetForm() {
   document.getElementById('photo-preview-container').classList.add('hidden');
   document.getElementById('photo-placeholder').classList.remove('hidden');
   currentPhotoBase64 = null;
+  getGpsLocation();
 }
 
 function createPlaceholderPhoto() {
@@ -336,7 +355,6 @@ function createPlaceholderPhoto() {
   return canvas.toDataURL();
 }
 
-// Navigation & History Rendering
 function switchTab(tabName) {
   document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
@@ -383,7 +401,6 @@ function filterHistory() {
   });
 }
 
-// Modal & A4 PDF Document Logic
 function openEvidenceModal(recordId) {
   const record = dbRecords.find(r => r.id === recordId);
   if (record) openEvidenceModalData(record);

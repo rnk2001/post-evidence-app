@@ -14,7 +14,7 @@
   <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   
-  <!-- Firebase JS SDK (v10 Compat for Easy Web Usage) -->
+  <!-- Firebase JS SDK (v10 Compat) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
@@ -39,10 +39,10 @@
 
   <!-- Navigation Tabs -->
   <nav class="tab-menu">
-    <button class="tab-btn active" id="tab-btn-form" onclick="switchTab('form')">
+    <button type="button" class="tab-btn active" id="tab-btn-form" onclick="switchTab('form')">
       <i class="fa-solid fa-file-circle-plus"></i> บันทึกรับพัสดุใหม่
     </button>
-    <button class="tab-btn" id="tab-btn-history" onclick="switchTab('history')">
+    <button type="button" class="tab-btn" id="tab-btn-history" onclick="switchTab('history')">
       <i class="fa-solid fa-clock-rotate-left"></i> ประวัติหลักฐาน (<span id="history-count">0</span>)
     </button>
   </nav>
@@ -55,7 +55,7 @@
       <!-- Box 1: Location & Timestamp -->
       <div class="card">
         <div class="card-header">
-          <i class="fa-solid fa-location-dot"></i> 1. พิกัดและเวลาฝากส่ง (อัตโนมัติ)
+          <i class="fa-solid fa-location-dot"></i> 1. พิกัดและเวลาฝากส่ง (ดึงอัตโนมัติ)
         </div>
         <div class="card-body">
           <div class="info-grid">
@@ -66,9 +66,9 @@
             <div class="info-item">
               <label><i class="fa-solid fa-crosshairs"></i> พิกัด GPS หน้างาน</label>
               <div class="readonly-box" id="display-gps">
-                <span id="gps-text">กรุณากดปุ่มเพื่อรับพิกัด</span>
+                <span id="gps-text">กำลังดึงพิกัดอัตโนมัติ...</span>
                 <button type="button" class="btn-small" onclick="getGpsLocation()">
-                  <i class="fa-solid fa-arrows-rotate"></i> ดึงพิกัด
+                  <i class="fa-solid fa-arrows-rotate"></i> รีเฟรช
                 </button>
               </div>
             </div>
@@ -124,6 +124,13 @@
                 <i class="fa-solid fa-plus"></i> เพิ่ม
               </button>
             </div>
+            <!-- เพิ่มช่องทางด่วน: วางข้อความหลายบรรทัด -->
+            <div class="bulk-input-box mt-5">
+              <textarea id="bulk-tracking-textarea" rows="2" placeholder="หรือวางเลข Tracking หลายกล่องพร้อมกัน (คั่นด้วยขึ้นบรรทัดใหม่) แล้วกดปุ่มเพิ่มด่วน"></textarea>
+              <button type="button" class="btn btn-outline btn-sm mt-5" onclick="addBulkTrackingFromTextarea()">
+                <i class="fa-solid fa-file-lines"></i> เพิ่มรายการทั้งหมดจากกล่องข้อความ
+              </button>
+            </div>
           </div>
 
           <div id="qr-reader-container" class="scanner-viewport hidden">
@@ -135,7 +142,10 @@
           <div class="parcel-summary-box">
             <div class="summary-title">
               <span>รายการพัสดุที่สแกนแล้ว</span>
-              <span class="badge" id="scanned-count-badge">0 ชิ้น</span>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <span class="badge" id="scanned-count-badge">0 ชิ้น</span>
+                <button type="button" class="btn btn-danger btn-sm" style="padding: 2px 6px; font-size: 11px;" onclick="clearAllParcels()">ล้างทั้งหมด</button>
+              </div>
             </div>
             <div class="parcel-list" id="parcel-list">
               <div class="empty-state">ยังไม่มีรายการพัสดุ สแกนบาร์โค้ดหรือกรอกเพื่อเริ่มเพิ่มรายการ</div>
