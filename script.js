@@ -1,5 +1,5 @@
 /* ==========================================================================
-   POSTEVIDENCE APP - FIREBASE CLOUD INTEGRATION (ENHANCED)
+   POSTEVIDENCE APP - FIREBASE CLOUD INTEGRATION (HIGH PERFORMANCE & SPEED)
    ========================================================================== */
 
 const firebaseConfig = {
@@ -12,8 +12,18 @@ const firebaseConfig = {
   measurementId: "G-LNXKDJ7QN0"
 };
 
+// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+
+// ⚡ เปิดใช้งานระบบ Offline Persistence (แคชข้อมูลในเครื่อง เพื่อให้เปิดใช้งานครั้งต่อไปโหลดเสร็จทันที)
+db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
+  if (err.code == 'failed-precondition') {
+    console.warn('Persistence failed: Multiple tabs open');
+  } else if (err.code == 'unimplemented') {
+    console.warn('Persistence is not supported by this browser');
+  }
+});
 
 let currentPhotoBase64 = null;
 let scannedParcels = [];
@@ -44,9 +54,11 @@ function checkCloudConnection() {
     });
 }
 
+// ⚡ ปรับปรุงการโหลดข้อมูล: จำกัดดึงเฉพาะ 30 รายการล่าสุด เพื่อความเร็วในการโหลดสูงสุด
 function listenToCloudUpdates() {
   db.collection('evidence_records')
     .orderBy('createdAt', 'desc')
+    .limit(30)
     .onSnapshot((snapshot) => {
       dbRecords = [];
       snapshot.forEach(doc => {
@@ -110,7 +122,8 @@ function handleImageUpload(event) {
   if (file) {
     const reader = new FileReader();
     reader.onload = function(e) {
-      compressImage(e.target.result, 800, 0.7, (compressedBase64) => {
+      // ⚡ บีบอัดขนาดภาพให้พอดี (ความกว้าง 700px, คุณภาพ 65%) เพื่อให้อัปโหลดขึ้น Cloud ได้รวดเร็วที่สุด
+      compressImage(e.target.result, 700, 0.65, (compressedBase64) => {
         currentPhotoBase64 = compressedBase64;
         document.getElementById('photo-preview').src = currentPhotoBase64;
         document.getElementById('photo-placeholder').classList.add('hidden');
@@ -182,7 +195,6 @@ function addTrackingFromInput() {
   }
 }
 
-// ฟังก์ชันเพิ่ม Tracking หลายบรรทัดพร้อมกันจาก Textarea
 function addBulkTrackingFromTextarea() {
   const textarea = document.getElementById('bulk-tracking-textarea');
   const lines = textarea.value.split('\n');
