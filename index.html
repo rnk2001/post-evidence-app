@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>PostEvidence - ระบบบันทึกหลักฐานการรับพัสดุนอกสถานที่</title>
   
-  <!-- Font & Icons -->
-  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
   <!-- External Libraries -->
@@ -23,83 +25,98 @@
 </head>
 <body>
 
-  <!-- Top Navigation Header -->
-  <header class="navbar">
-    <div class="nav-brand">
-      <i class="fa-solid fa-truck-fast logo-icon"></i>
-      <div>
-        <span class="brand-title">PostEvidence</span>
-        <span class="brand-subtitle">ไปรษณีย์ไทย | ระบบบันทึกหลักฐานรับพัสดุ</span>
+  <!-- Top App Bar -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-group">
+        <div class="brand-icon-bg">
+          <i class="fa-solid fa-truck-fast"></i>
+        </div>
+        <div class="brand-meta">
+          <span class="brand-title">PostEvidence</span>
+          <span class="brand-subtitle">ไปรษณีย์ไทย · ระบบบันทึกหลักฐานการรับพัสดุ</span>
+        </div>
       </div>
-    </div>
-    <div class="user-badge" id="db-status-badge">
-      <i class="fa-solid fa-cloud"></i> กำลังเชื่อมต่อ Cloud...
+      <div class="status-pill" id="db-status-badge">
+        <span class="status-dot"></span> กำลังเชื่อมต่อ Cloud...
+      </div>
     </div>
   </header>
 
-  <!-- Navigation Tabs -->
-  <nav class="tab-menu">
-    <button type="button" class="tab-btn active" id="tab-btn-form" onclick="switchTab('form')">
-      <i class="fa-solid fa-file-circle-plus"></i> บันทึกรับพัสดุใหม่
-    </button>
-    <button type="button" class="tab-btn" id="tab-btn-history" onclick="switchTab('history')">
-      <i class="fa-solid fa-clock-rotate-left"></i> ประวัติหลักฐาน (<span id="history-count">0</span>)
-    </button>
-  </nav>
+  <!-- Navigation Bar -->
+  <div class="nav-wrapper">
+    <nav class="nav-pills">
+      <button type="button" class="nav-pill active" id="tab-btn-form" onclick="switchTab('form')">
+        <i class="fa-solid fa-pen-to-square"></i>
+        <span>บันทึกรับพัสดุใหม่</span>
+      </button>
+      <button type="button" class="nav-pill" id="tab-btn-history" onclick="switchTab('history')">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        <span>ประวัติหลักฐาน</span>
+        <span class="pill-count" id="history-count">0</span>
+      </button>
+    </nav>
+  </div>
 
-  <main class="container">
+  <main class="app-container">
     
     <!-- ================= TAB 1: FORM ================= -->
     <section id="tab-form" class="tab-content active">
       
-      <!-- Box 1: Location & Timestamp -->
-      <div class="card">
-        <div class="card-header">
-          <i class="fa-solid fa-location-dot"></i> 1. พิกัดและเวลาฝากส่ง (ดึงอัตโนมัติ)
+      <!-- Section 1: GPS & Location -->
+      <div class="minimal-card">
+        <div class="card-title">
+          <span class="step-num">01</span>
+          <h3>พิกัดและเวลาฝากส่ง</h3>
         </div>
         <div class="card-body">
-          <div class="info-grid">
-            <div class="info-item">
-              <label><i class="fa-regular fa-clock"></i> วันที่/เวลาปัจจุบัน</label>
-              <div class="readonly-box" id="display-datetime">กำลังดึงเวลา...</div>
+          <div class="grid-2col">
+            <div class="form-field">
+              <label><i class="fa-regular fa-clock"></i> วันที่ / เวลาฝากส่ง</label>
+              <div class="readonly-pill" id="display-datetime">กำลังดึงเวลา...</div>
             </div>
-            <div class="info-item">
-              <label><i class="fa-solid fa-crosshairs"></i> พิกัด GPS หน้างาน</label>
-              <div class="readonly-box" id="display-gps">
-                <span id="gps-text">กำลังดึงพิกัดอัตโนมัติ...</span>
-                <button type="button" class="btn-small" onclick="getGpsLocation()">
-                  <i class="fa-solid fa-arrows-rotate"></i> รีเฟรช
+            <div class="form-field">
+              <label><i class="fa-solid fa-location-crosshairs"></i> พิกัด GPS หน้างาน</label>
+              <div class="readonly-pill flex-between">
+                <span id="gps-text">กำลังดึงพิกัด...</span>
+                <button type="button" class="icon-btn" onclick="getGpsLocation()" title="รีเฟรชพิกัด">
+                  <i class="fa-solid fa-rotate"></i>
                 </button>
               </div>
             </div>
           </div>
           
-          <div class="input-group mt-10">
-            <label for="location-name"><i class="fa-solid fa-store"></i> ชื่อสถานที่/จุดรับพัสดุ (ระบุเพิ่มเติม)</label>
-            <input type="text" id="location-name" placeholder="เช่น ร้านค้าป้าพิน / เคาน์เตอร์จุดฝากส่ง EMS Point">
+          <div class="form-field mt-16">
+            <label for="location-name"><i class="fa-solid fa-store"></i> ชื่อสถานที่ / จุดรับพัสดุเพิ่มเติม</label>
+            <input type="text" id="location-name" class="minimal-input" placeholder="เช่น ร้านค้าป้าพิน / เคาน์เตอร์ EMS Point">
           </div>
         </div>
       </div>
 
-      <!-- Box 2: Photo Evidence -->
-      <div class="card">
-        <div class="card-header">
-          <i class="fa-solid fa-camera"></i> 2. ถ่ายรูปถ่ายหลักฐานหน้างาน / กองพัสดุ
+      <!-- Section 2: Photo Proof -->
+      <div class="minimal-card">
+        <div class="card-title">
+          <span class="step-num">02</span>
+          <h3>ถ่ายภาพหลักฐานการรับสินค้า</h3>
         </div>
         <div class="card-body">
-          <div class="photo-upload-area" onclick="triggerCameraInput()">
+          <div class="photo-dropzone" onclick="triggerCameraInput()">
             <input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden-input" onchange="handleImageUpload(event)">
-            <div id="photo-placeholder" class="upload-placeholder">
-              <i class="fa-solid fa-camera-retro upload-icon"></i>
-              <p class="main-text">กดที่นี่เพื่อถ่ายภาพหลักฐานสินค้า/ผู้ฝากส่ง</p>
-              <p class="sub-text">รองรับการถ่ายภาพจากกล้องมือถือโดยตรง</p>
-            </div>
-            <div id="photo-preview-container" class="photo-preview-container hidden">
-              <img id="photo-preview" src="" alt="ภาพหลักฐาน">
-              <div class="photo-watermark">
-                POSTEVIDENCE PROOF | <span id="watermark-time"></span>
+            
+            <div id="photo-placeholder" class="dropzone-content">
+              <div class="camera-circle">
+                <i class="fa-solid fa-camera"></i>
               </div>
-              <button type="button" class="btn-retake" onclick="event.stopPropagation(); triggerCameraInput();">
+              <p class="dropzone-title">แตะเพื่อถ่ายภาพหลักฐานหน้างาน</p>
+              <p class="dropzone-sub">รองรับการถ่ายจากกล้องมือถือโดยตรง</p>
+            </div>
+
+            <div id="photo-preview-container" class="preview-box hidden">
+              <img id="photo-preview" src="" alt="ภาพหลักฐาน">
+              <div class="preview-watermark">
+                <i class="fa-solid fa-shield-halved"></i> POSTEVIDENCE PROOF · <span id="watermark-time"></span>
+              </div>
+              <button type="button" class="retake-btn" onclick="event.stopPropagation(); triggerCameraInput();">
                 <i class="fa-solid fa-camera-rotate"></i> ถ่ายใหม่
               </button>
             </div>
@@ -107,89 +124,91 @@
         </div>
       </div>
 
-      <!-- Box 3: Multi-Barcode Scan & Parcel List -->
-      <div class="card">
-        <div class="card-header">
-          <i class="fa-solid fa-barcode"></i> 3. สแกนเลขพัสดุ EMS / FastTrack (รับหลายกล่อง)
+      <!-- Section 3: Parcels & Scanner -->
+      <div class="minimal-card">
+        <div class="card-title flex-between">
+          <div class="title-with-num">
+            <span class="step-num">03</span>
+            <h3>สแกนเลขพัสดุ (Multi-Tracking)</h3>
+          </div>
+          <span class="badge-count" id="scanned-count-badge">0 ชิ้น</span>
         </div>
+        
         <div class="card-body">
-          
           <div class="scanner-actions">
-            <button type="button" class="btn btn-secondary" onclick="toggleCameraScanner()">
-              <i class="fa-solid fa-expand"></i> เปิดกล้องยิงบาร์โค้ดต่อเนื่อง
+            <button type="button" class="btn btn-dark btn-block" onclick="toggleCameraScanner()">
+              <i class="fa-solid fa-qrcode"></i> เปิดกล้องสแกนบาร์โค้ดแบบต่อเนื่อง
             </button>
-            <div class="manual-input-box">
-              <input type="text" id="manual-tracking-input" placeholder="พิมพ์เลข Tracking เช่น EG998560205TH">
-              <button type="button" class="btn btn-primary" onclick="addTrackingFromInput()">
+
+            <div class="input-row">
+              <input type="text" id="manual-tracking-input" class="minimal-input" placeholder="กรอกเลข Tracking เช่น EG998560205TH">
+              <button type="button" class="btn btn-outline" onclick="addTrackingFromInput()">
                 <i class="fa-solid fa-plus"></i> เพิ่ม
               </button>
             </div>
-            <!-- เพิ่มช่องทางด่วน: วางข้อความหลายบรรทัด -->
-            <div class="bulk-input-box mt-5">
-              <textarea id="bulk-tracking-textarea" rows="2" placeholder="หรือวางเลข Tracking หลายกล่องพร้อมกัน (คั่นด้วยขึ้นบรรทัดใหม่) แล้วกดปุ่มเพิ่มด่วน"></textarea>
-              <button type="button" class="btn btn-outline btn-sm mt-5" onclick="addBulkTrackingFromTextarea()">
-                <i class="fa-solid fa-file-lines"></i> เพิ่มรายการทั้งหมดจากกล่องข้อความ
+
+            <div class="bulk-box">
+              <textarea id="bulk-tracking-textarea" rows="2" class="minimal-textarea" placeholder="หรือวางเลข Tracking หลายกล่องพร้อมกัน (วางคั่นด้วยการขึ้นบรรทัดใหม่)"></textarea>
+              <button type="button" class="btn btn-ghost btn-sm mt-8" onclick="addBulkTrackingFromTextarea()">
+                <i class="fa-solid fa-list-check"></i> เพิ่มรายการทั้งหมดจากกล่องข้อความ
               </button>
             </div>
           </div>
 
-          <div id="qr-reader-container" class="scanner-viewport hidden">
+          <div id="qr-reader-container" class="scanner-modal hidden">
             <div id="qr-reader"></div>
-            <p class="scanner-tip"><i class="fa-solid fa-circle-info"></i> นำกล้องสแกนบาร์โค้ดบนใบสลิป EMS Point ทีละใบ ระบบจะส่งเสียง *บี๊บ!* และเพิ่มรายการให้อัตโนมัติ</p>
-            <button type="button" class="btn btn-danger btn-sm mt-5" onclick="stopCameraScanner()">ปิดกล้องสแกน</button>
+            <p class="scanner-help"><i class="fa-solid fa-circle-info"></i> ส่องกล้องไปที่บาร์โค้ดบนสลิป ระบบจะส่งเสียงสัญญาณและบันทึกให้อัตโนมัติ</p>
+            <button type="button" class="btn btn-danger btn-sm mt-8" onclick="stopCameraScanner()">ปิดกล้องสแกน</button>
           </div>
 
-          <div class="parcel-summary-box">
-            <div class="summary-title">
+          <div class="parcel-list-wrapper">
+            <div class="list-header">
               <span>รายการพัสดุที่สแกนแล้ว</span>
-              <div style="display: flex; gap: 8px; align-items: center;">
-                <span class="badge" id="scanned-count-badge">0 ชิ้น</span>
-                <button type="button" class="btn btn-danger btn-sm" style="padding: 2px 6px; font-size: 11px;" onclick="clearAllParcels()">ล้างทั้งหมด</button>
-              </div>
+              <button type="button" class="text-btn text-danger" onclick="clearAllParcels()">ล้างทั้งหมด</button>
             </div>
-            <div class="parcel-list" id="parcel-list">
-              <div class="empty-state">ยังไม่มีรายการพัสดุ สแกนบาร์โค้ดหรือกรอกเพื่อเริ่มเพิ่มรายการ</div>
+            <div class="parcel-items" id="parcel-list">
+              <div class="empty-state">ยังไม่มีรายการพัสดุ สแกนหรือกรอกเลขเพื่อเริ่มต้น</div>
             </div>
           </div>
-
         </div>
       </div>
 
-      <!-- Box 4: Digital Signature & Sender Info -->
-      <div class="card">
-        <div class="card-header">
-          <i class="fa-solid fa-signature"></i> 4. ข้อมูลและลายมือชื่อผู้ส่งฝาก
+      <!-- Section 4: Signature & Sender Info -->
+      <div class="minimal-card">
+        <div class="card-title">
+          <span class="step-num">04</span>
+          <h3>ข้อมูลและลายมือชื่อผู้ส่งฝาก</h3>
         </div>
         <div class="card-body">
-          <div class="grid-2col">
-            <div class="input-group">
-              <label for="sender-name">ชื่อผู้ฝากส่ง / ร้านค้า</label>
-              <input type="text" id="sender-name" placeholder="เช่น ร้าน FastTrack สุขุมวิท">
+          <div class="grid-2col mb-16">
+            <div class="form-field">
+              <label for="sender-name">ชื่อผู้ฝากส่ง / ชื่อร้านค้า</label>
+              <input type="text" id="sender-name" class="minimal-input" placeholder="เช่น ร้าน FastTrack สุขุมวิท">
             </div>
-            <div class="input-group">
+            <div class="form-field">
               <label for="sender-phone">เบอร์โทรศัพท์ติดต่อ</label>
-              <input type="tel" id="sender-phone" placeholder="เช่น 081-234-5678">
+              <input type="tel" id="sender-phone" class="minimal-input" placeholder="เช่น 081-234-5678">
             </div>
           </div>
 
-          <div class="signature-section">
-            <div class="flex-between">
-              <label><i class="fa-solid fa-pen-nib"></i> ลายมือชื่อผู้ฝากส่ง / ผู้แทนรับมอบ</label>
-              <button type="button" class="btn-text text-danger" onclick="clearSignature()">
+          <div class="signature-box">
+            <div class="flex-between mb-8">
+              <label><i class="fa-solid fa-signature"></i> ลายมือชื่อผู้ฝากส่ง / ผู้แทนรับมอบ</label>
+              <button type="button" class="text-btn text-danger" onclick="clearSignature()">
                 <i class="fa-solid fa-eraser"></i> ล้างลายเซ็น
               </button>
             </div>
-            <div class="canvas-wrapper" id="canvas-container">
+            <div class="canvas-container" id="canvas-container">
               <canvas id="signature-pad"></canvas>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Submit Action Button -->
-      <div class="action-buttons">
-        <button type="button" class="btn btn-success btn-lg btn-block" id="btn-save" onclick="saveEvidenceRecord()">
-          <i class="fa-solid fa-floppy-disk"></i> บันทึกหลักฐานเข้าระบบ Cloud
+      <!-- Primary Action -->
+      <div class="submit-area">
+        <button type="button" class="btn btn-primary btn-lg btn-block" id="btn-save" onclick="saveEvidenceRecord()">
+          <i class="fa-solid fa-cloud-arrow-up"></i> บันทึกหลักฐานเข้าระบบ Cloud
         </button>
       </div>
 
@@ -197,26 +216,22 @@
 
     <!-- ================= TAB 2: HISTORY ================= -->
     <section id="tab-history" class="tab-content">
-      <div class="card">
-        <div class="card-header flex-between">
-          <span><i class="fa-solid fa-list-check"></i> ประวัติหลักฐานการรับพัสดุทั้งหมด (Cloud Sync)</span>
-          <button type="button" class="btn btn-outline btn-sm" onclick="exportAllDataCSV()">
-            <i class="fa-solid fa-file-csv"></i> ส่งออกไฟล์ CSV
+      <div class="minimal-card">
+        <div class="card-title flex-between">
+          <h3>ประวัติการรับพัสดุทั้งหมด</h3>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="exportAllDataCSV()">
+            <i class="fa-solid fa-file-csv"></i> Export CSV
           </button>
         </div>
         <div class="card-body">
-          
-          <div class="search-bar">
-            <div class="search-input">
-              <i class="fa-solid fa-magnifying-glass"></i>
-              <input type="text" id="history-search" placeholder="ค้นหาตามชื่อร้าน, เลข Tracking, หรือสถานที่..." onkeyup="filterHistory()">
-            </div>
+          <div class="search-box mb-16">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input type="text" id="history-search" class="minimal-input search-input" placeholder="ค้นหาด้วยชื่อร้าน, เลข Tracking, หรือสถานที่..." onkeyup="filterHistory()">
           </div>
 
-          <div id="history-list-container" class="history-grid">
-            <div class="empty-state">กำลังโหลดข้อมูลประวัติจาก Cloud...</div>
+          <div id="history-list-container" class="history-list">
+            <div class="empty-state">กำลังดึงข้อมูลประวัติจาก Cloud...</div>
           </div>
-
         </div>
       </div>
     </section>
@@ -225,13 +240,16 @@
 
   <!-- ================= MODAL: A4 DOCUMENT PREVIEW & EXPORT ================= -->
   <div id="evidence-modal" class="modal-overlay hidden">
-    <div class="modal-container">
-      <div class="modal-header">
-        <h3><i class="fa-solid fa-file-pdf"></i> เอกสารหลักฐานขนาด A4 (A4 Certificate)</h3>
-        <button type="button" class="close-btn" onclick="closeModal('evidence-modal')">&times;</button>
+    <div class="modal-card">
+      <div class="modal-top">
+        <div class="modal-title">
+          <i class="fa-solid fa-file-contract"></i>
+          <h3>เอกสารหลักฐานขนาด A4</h3>
+        </div>
+        <button type="button" class="modal-close-btn" onclick="closeModal('evidence-modal')">&times;</button>
       </div>
-      <div class="modal-body">
-        
+      
+      <div class="modal-scroll-area">
         <div id="a4-document" class="a4-page">
           
           <div class="a4-header">
@@ -315,12 +333,12 @@
           </div>
 
         </div>
-
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" onclick="closeModal('evidence-modal')">ปิดหน้าต่าง</button>
-        <button type="button" class="btn btn-primary" onclick="downloadPDF()"><i class="fa-solid fa-download"></i> ดาวน์โหลด PDF A4</button>
-        <button type="button" class="btn btn-success" onclick="printA4Document()"><i class="fa-solid fa-print"></i> พิมพ์เอกสาร (Print)</button>
+
+      <div class="modal-bottom">
+        <button type="button" class="btn btn-outline" onclick="closeModal('evidence-modal')">ปิดหน้าต่าง</button>
+        <button type="button" class="btn btn-dark" onclick="downloadPDF()"><i class="fa-solid fa-download"></i> ดาวน์โหลด PDF A4</button>
+        <button type="button" class="btn btn-primary" onclick="printA4Document()"><i class="fa-solid fa-print"></i> พิมพ์เอกสาร</button>
       </div>
     </div>
   </div>
