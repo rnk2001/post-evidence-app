@@ -1,5 +1,5 @@
 /* ==========================================================================
-   POSTEVIDENCE APP - FIREBASE CLOUD INTEGRATION (HIGH PERFORMANCE & SPEED)
+   POSTEVIDENCE APP - FIREBASE CLOUD INTEGRATION (WITH DELETE FEATURE)
    ========================================================================== */
 
 const firebaseConfig = {
@@ -16,7 +16,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// ⚡ เปิดใช้งานระบบ Offline Persistence (แคชข้อมูลในเครื่อง เพื่อให้เปิดใช้งานครั้งต่อไปโหลดเสร็จทันที)
+// ⚡ เปิดใช้งานระบบ Offline Persistence
 db.enablePersistence({ synchronizeTabs: true }).catch((err) => {
   if (err.code == 'failed-precondition') {
     console.warn('Persistence failed: Multiple tabs open');
@@ -35,7 +35,7 @@ let dbRecords = [];
 document.addEventListener('DOMContentLoaded', () => {
   initClock();
   initSignaturePad();
-  getGpsLocation(); // ดึง GPS อัตโนมัติทันทีที่เปิดเว็บ
+  getGpsLocation(); 
   checkCloudConnection();
   listenToCloudUpdates();
 
@@ -54,7 +54,6 @@ function checkCloudConnection() {
     });
 }
 
-// ⚡ ปรับปรุงการโหลดข้อมูล: จำกัดดึงเฉพาะ 30 รายการล่าสุด เพื่อความเร็วในการโหลดสูงสุด
 function listenToCloudUpdates() {
   db.collection('evidence_records')
     .orderBy('createdAt', 'desc')
@@ -122,7 +121,6 @@ function handleImageUpload(event) {
   if (file) {
     const reader = new FileReader();
     reader.onload = function(e) {
-      // ⚡ บีบอัดขนาดภาพให้พอดี (ความกว้าง 700px, คุณภาพ 65%) เพื่อให้อัปโหลดขึ้น Cloud ได้รวดเร็วที่สุด
       compressImage(e.target.result, 700, 0.65, (compressedBase64) => {
         currentPhotoBase64 = compressedBase64;
         document.getElementById('photo-preview').src = currentPhotoBase64;
@@ -399,11 +397,29 @@ function renderHistoryList() {
           <i class="fa-solid fa-boxes-packing"></i> พัสดุ ${item.parcels.length} ชิ้น: ${item.parcels.slice(0, 2).join(', ')}${item.parcels.length > 2 ? '...' : ''}
         </div>
       </div>
-      <button type="button" class="btn btn-outline btn-sm" onclick="openEvidenceModal('${item.id}')">
-        <i class="fa-solid fa-file-pdf"></i> เอกสาร A4
-      </button>
+      <div style="display: flex; gap: 6px;">
+        <button type="button" class="btn btn-outline btn-sm" onclick="openEvidenceModal('${item.id}')">
+          <i class="fa-solid fa-file-pdf"></i> เอกสาร A4
+        </button>
+        <button type="button" class="btn btn-danger btn-sm" onclick="deleteEvidenceRecord('${item.docId}', '${item.id}')" title="ลบประวัติ">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+      </div>
     </div>
   `).join('');
+}
+
+// 🗑️ ฟังก์ชันสำหรับลบประวัติรายการ
+function deleteEvidenceRecord(docId, recordId) {
+  if (confirm(`คุณต้องการลบประวัติหลักฐานเลขที่ ${recordId} ใช่หรือไม่?\n(ข้อมูลจะถูกลอกจากระบบ Cloud ทันที)`)) {
+    db.collection('evidence_records').doc(docId).delete()
+      .then(() => {
+        alert(`ลบประวัติ ${recordId} สำเร็จเรียบร้อยแล้ว`);
+      })
+      .catch((error) => {
+        alert("เกิดข้อผิดพลาดในการลบข้อมูล: " + error.message);
+      });
+  }
 }
 
 function filterHistory() {
